@@ -10,7 +10,7 @@ pip install -e .
 
 Set your Documenso API token (from *User settings → API tokens*):
 
-In SolveIt, set your env varDOCUMENSO_API_KEY=your-token
+In SolveIt, set your env var DOCUMENSO_API_KEY=your-token
 
 ## Usage
 
