@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fastdocumenso"
+version = "0.1.0"
+description = "Documenso v2 API client with pyskill for e-signature workflows"
+requires-python = ">=3.10"
+dependencies = ["fastcore==1.13.9", "fastspec==0.0.11", "httpx"]
+
+[project.entry-points.pyskills]
+"fastdocumenso.skill" = "fastdocumenso.skill"
+[tool.setuptools.packages.find]
+include = ["fastdocumenso"]
