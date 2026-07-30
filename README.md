@@ -62,6 +62,9 @@ The spec snapshot is fetched from `https://app.documenso.com/api/v2/openapi.json
 python scripts/update_spec.py
 ```
 
+Note: `update_spec.py` also patches `file_params` for 5 envelope/document ops,
+since Documenso's spec uses empty schemas instead of `format: binary` for file uploads.
+
 ## AI agent use
 
 This package registers a pyskill (`fastdocumenso.skill`). AI hosts (solveit, etc.) can discover it via `list_pyskills()` and load it to automate signing workflows. The skill inherits the same whitelist — delete and cancel operations are not exposed.
