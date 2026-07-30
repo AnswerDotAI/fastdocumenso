@@ -45,7 +45,7 @@ signed = await cli.envelope.envelope_item_download(envelope_item_id=item_id)
 
 ## Operations
 
-The full Documenso v2 spec has 89 operations. This client ships with a whitelist of 9 read+create+sign operations for safe testing on production:
+The full Documenso v2 spec has 89 operations. This client ships with a whitelist of 9 read+create+sign operations for safe testing:
 
 | Group | Operations |
 |---|---|
