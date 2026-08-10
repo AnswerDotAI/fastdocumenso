@@ -5,17 +5,10 @@ Create a client with `documenso_client()` and call generated operations:
 """
 import os, json
 from fastcore.utils import *
-from fastspec.spec import SpecParser, OpSpec
+from fastspec.spec import SpecParser
 from fastspec.oapi import OpenAPIClient, OpGroup, OpFunc
 
 from fastdocumenso._spec import spec as _spec
-
-_py_types = {t.__name__:t for t in (str,int,float,bool,list,dict)}
-def _from_dict(cls, d):
-    "Recreate a SpecParser from to_dict form"
-    def _op(o): return OpSpec(**{**o, 'param_types':{k:_py_types[t] for k,t in o.get('param_types',{}).items()}})
-    return cls(d['base_url'], [_op(o) for o in d['ops']])
-SpecParser.from_dict = classmethod(_from_dict)
 
 _ALLOWED_OPS = {
     'envelope_create', 'envelope_get', 'envelope_recipient_create_many',
