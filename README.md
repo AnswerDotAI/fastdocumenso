@@ -19,38 +19,30 @@ from fastdocumenso import documenso_client
 
 cli = documenso_client()
 
-# Create an envelope with a PDF
+# Create an envelope with a PDF, recipient, and signature field — all in one call
 env = await cli.envelope.envelope_create(
-    payload={'title': 'My NDA', 'type': 'DOCUMENT'},
+    payload={'title': 'My NDA', 'type': 'DOCUMENT',
+             'recipients': [{'email': 'a@b.com', 'name': 'A', 'role': 'SIGNER',
+                             'fields': [{'type': 'SIGNATURE', 'page': 1, 'positionX': 60,
+                                         'positionY': 80, 'width': 25, 'height': 5}]}]},
     files=('doc.pdf', pdf_bytes, 'application/pdf'))
 
-# Add a signer and a signature field
-await cli.envelope.envelope_recipient_create_many(
-    envelope_id=env['id'],
-    data=[{'email': 'a@b.com', 'name': 'A', 'role': 'SIGNER'}])
-
-await cli.envelope.envelope_field_create_many(
-    envelope_id=env['id'],
-    data=[{'recipientId': rid, 'envelopeItemId': item_id,
-           'type': 'SIGNATURE', 'page': 1,
-           'positionX': 60, 'positionY': 80, 'width': 25, 'height': 5}])
-
 # Send the signing email
-await cli.envelope.envelope_distribute(envelope_id=env['id'])
+res = await cli.envelope.envelope_distribute(envelope_id=env['id'])
+print(res['recipients'][0]['signingUrl'])  # the signer's link
 
 # Check status and download the signed document
 d = await cli.envelope.envelope_get(envelope_id=env['id'])
-signed = await cli.envelope.envelope_item_download(envelope_item_id=item_id)
+signed = await cli.envelope.envelope_item_download(envelope_item_id=d['envelopeItems'][0]['id'])
 ```
 
 ## Operations
 
-The full Documenso v2 spec has 89 operations. This client ships with a whitelist of 9 read+create+sign operations for safe testing:
+The full Documenso v2 spec has 89 operations. This client ships with a whitelist of 8 read+create+sign operations for safe testing:
 
 | Group | Operations |
 |---|---|
-| envelope | `create`, `get`, `recipient_create_many`, `field_create_many`, `distribute`, `item_download`, `audit_log_find` |
-| document | `find`, `get` |
+| envelope | `create`, `get`, `find`, `recipient_create_many`, `field_create_many`, `distribute`, `item_download`, `audit_log_find` |
 
 To change the whitelist, edit `_ALLOWED_OPS` in `fastdocumenso/core.py`.
 
@@ -67,4 +59,4 @@ since Documenso's spec uses empty schemas instead of `format: binary` for file u
 
 ## AI agent use
 
-This package registers a pyskill (`fastdocumenso.skill`). AI hosts (solveit, etc.) can discover it via `list_pyskills()` and load it to automate signing workflows. The skill inherits the same whitelist — delete and cancel operations are not exposed.
+This package registers a pyskill (`fastdocumenso.skill`). AI hosts (solveit, etc.) can discover it via `list_pyskills()` and load it to automate signing workflows. The skill inherits the same whitelist — delete and cancel operations are not exposed, and `distribute` sends real emails.
