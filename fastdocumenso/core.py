@@ -11,10 +11,11 @@ from fastspec.oapi import OpenAPIClient, OpGroup, OpFunc
 from fastdocumenso._spec import spec as _spec
 
 _ALLOWED_OPS = {
-    'envelope_create', 'envelope_get', 'envelope_recipient_create_many',
+    'envelope_create', 'envelope_get', 'envelope_find', 'envelope_recipient_create_many',
     'envelope_field_create_many', 'envelope_distribute', 'envelope_item_download',
-    'envelope_audit_log_find', 'document_find', 'document_get',
+    'envelope_audit_log_find',
 }
+
 __all__ = ['documenso_client', 'documenso_spec']
 
 def documenso_spec()->SpecParser:

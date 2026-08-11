@@ -1,28 +1,69 @@
-"""Send documents for e-signature via the Documenso v2 API — envelope, document, and audit operations as self-documenting async functions.
+"""Send documents for e-signature via the Documenso v2 API — envelope, recipient, field, and audit operations as self-documenting async functions.
 
 Create a client with `documenso_client()` (needs `$DOCUMENSO_API_KEY`). Operations are async — await them. This skill is locked to a read+create+sign whitelist for safe testing on production; delete and cancel are not available.
 
 # Envelope signing workflow
 
+Fastest path — recipients and their fields go inline in the create payload, so the
+whole setup is 2 calls:
+
     cli = documenso_client()
-    env = await cli.envelope.envelope_create(payload={'title': 'Test', 'type': 'DOCUMENT'}, files=('doc.pdf', pdf_bytes, 'application/pdf'))
-    await cli.envelope.envelope_recipient_create_many(envelope_id=env['id'], data=[{'email': 'a@b.com', 'name': 'A', 'role': 'SIGNER'}])
-    await cli.envelope.envelope_field_create_many(envelope_id=env['id'], data=[{'recipientId': rid, 'envelopeItemId': item_id, 'type': 'SIGNATURE', 'page': 1, 'positionX': 60, 'positionY': 80, 'width': 25, 'height': 5}])
-    await cli.envelope.envelope_distribute(envelope_id=env['id'])
+    env = await cli.envelope.envelope_create(                      # -> {'id': 'envelope_xxx'}
+        payload={'title': 'Test', 'type': 'DOCUMENT',
+                 'recipients': [{'email': 'a@b.com', 'name': 'A', 'role': 'SIGNER',
+                                 'fields': [{'type': 'SIGNATURE', 'page': 1, 'positionX': 60,
+                                             'positionY': 80, 'width': 25, 'height': 5}]}]},
+        files=('doc.pdf', pdf_bytes, 'application/pdf'))
+    eid = env['id']
+    res = await cli.envelope.envelope_distribute(envelope_id=eid)  # sends real email
+    # -> {'success': True, 'id': 'envelope_xxx', 'recipients': [{'id','name','email','token',
+    #     'role','signingOrder','signingUrl'}]}   
+    signing_url = res['recipients'][0]['signingUrl']               # https://app.documenso.com/sign/{token}
+
+Step-by-step alternative, when adding recipients/fields to an existing envelope. Each
+call feeds the next, and `envelope_get` is the only source of the envelope item id:
+
+    d = await cli.envelope.envelope_get(envelope_id=eid)           # -> full record: status, title,
+                                                                   # recipients, fields, envelopeItems,
+                                                                   # secondaryId, team, user, timestamps
+    item_id = d['envelopeItems'][0]['id']                          # 'envelope_item_xxx'
+
+    r = await cli.envelope.envelope_recipient_create_many(         # -> {'data': [{...}]}
+        envelope_id=eid,
+        data=[{'email': 'a@b.com', 'name': 'A', 'role': 'SIGNER'}])
+    rid = r['data'][0]['id']                                       # int, e.g. 3171028
+
+    await cli.envelope.envelope_field_create_many(                 # -> {'data': [{...}]}
+        envelope_id=eid,
+        data=[{'recipientId': rid, 'envelopeItemId': item_id, 'type': 'SIGNATURE',
+               'page': 1, 'positionX': 60, 'positionY': 80, 'width': 25, 'height': 5}])
+
+    res = await cli.envelope.envelope_distribute(envelope_id=eid)  # same shape as above
 
 # Checking status and downloading
 
-    d = await cli.envelope.envelope_get(envelope_id=env['id'])   # d['status']: DRAFT / PENDING / COMPLETED
-    signed = await cli.envelope.envelope_item_download(envelope_item_id=item_id)  # bytes
+    d = await cli.envelope.envelope_get(envelope_id=eid)   # d['status']: DRAFT / PENDING / COMPLETED / REJECTED / CANCELLED
+    # Dashboard URL: https://app.documenso.com/t/{d['team']['url']}/documents/{d['secondaryId'].split('_')[1]}
+    signed = await cli.envelope.envelope_item_download(envelope_item_id=item_id)  # bytes; version='original'|'signed'|'pending' (default 'signed')
 
 # Audit logs
 
-    logs = await cli.envelope.envelope_audit_log_find(envelope_id=env['id'], per_page=100)
+    logs = await cli.envelope.envelope_audit_log_find(envelope_id=eid, per_page=100)
+    # -> {'data': [...], 'count': int, 'currentPage': int, 'perPage': int, 'totalPages': int}
 
-# Finding existing documents
+# Finding envelopes
 
-    docs = await cli.document.document_find(per_page=10)
-    doc = await cli.document.document_get(document_id=123)
+    found = await cli.envelope.envelope_find(status='PENDING', per_page=100,
+                order_by_column='createdAt', order_by_direction='desc')
+    # -> {'data': [...], 'count': int, 'currentPage': int, 'perPage': int, 'totalPages': int}
+
+Filters: `query`, `status` (DRAFT/PENDING/COMPLETED/REJECTED/CANCELLED),
+`type` (DOCUMENT/TEMPLATE), `source`, `folder_id`, `template_id`,
+`has_expired_recipients`. There is NO date filter — sort by `createdAt`
+descending and cut client-side.
+
+`document_find`/`document_get` were removed from this skill: they are the deprecated
+pre-envelope API. Note params are snake_case here (`per_page`), camelCase in the spec.
 
 # Gotchas
 
@@ -30,6 +71,12 @@ Create a client with `documenso_client()` (needs `$DOCUMENSO_API_KEY`). Operatio
 - Field coordinates (`positionX`/`positionY`/`width`/`height`) are percentages of the page, origin top-left.
 - Multipart file params: pass as `(filename, bytes, mimetype)` tuple.
 - `payload` is a plain dict — the client JSON-encodes it for multipart.
+- `envelope_create` returns ONLY `{'id': ...}` — call `envelope_get` for item ids, recipients, fields, status, and `team['url']`.
+- `envelope_distribute` returns `{'success': True, 'id': ..., 'recipients': [...]}` — there is NO 'status' key. The signing URL is `res['recipients'][0]['signingUrl']`.
+- Return shapes are annotated inline above. If one is not annotated, print the whole dict rather than guessing a key.
+- Never put a side-effecting call (`distribute`) and speculative inspection in the same cell: if the cell raises, its variables are discarded even though the network call already went through. Capture first, inspect separately.
+- Field types: SIGNATURE, FREE_SIGNATURE, INITIALS, NAME, EMAIL, DATE, TEXT, NUMBER, RADIO, CHECKBOX, DROPDOWN. Roles: SIGNER, CC, VIEWER, APPROVER, ASSISTANT. Statuses: DRAFT, PENDING, COMPLETED, REJECTED, CANCELLED.
+- Ids use three schemes: envelope/item are opaque strings (`envelope_xxx`), recipients/fields are ints, and `secondaryId` holds the legacy numeric document id.
 - Delete and cancel operations are not available in this skill."""
 from pyskills.core import allow
 from fastspec.oapi import OpGroup, OpFunc
