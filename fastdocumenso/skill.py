@@ -2,6 +2,17 @@
 
 Use the preconfigured `documenso` client (needs `$DOCUMENSO_API_KEY`). Operations are async — await them. This skill is locked to a read+create+sign allowlist for safe testing on production; delete and cancel are not available.
 
+# Allowed operations
+
+- `envelope_create`
+- `envelope_get`
+- `envelope_find`
+- `envelope_recipient_create_many`
+- `envelope_field_create_many`
+- `envelope_distribute`
+- `envelope_item_download`
+- `envelope_audit_log_find`
+
 # Envelope signing workflow
 
 Fastest path — recipients and their fields go inline in the create payload, so the
