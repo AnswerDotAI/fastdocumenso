@@ -61,9 +61,6 @@ Filters: `query`, `status` (DRAFT/PENDING/COMPLETED/REJECTED/CANCELLED),
 `has_expired_recipients`. There is NO date filter — sort by `createdAt`
 descending and cut client-side.
 
-`document_find`/`document_get` were removed from this skill: they are the deprecated
-pre-envelope API. Note params are snake_case here (`per_page`), camelCase in the spec.
-
 # Gotchas
 
 - `distribute` sends real emails to recipients — only call when intended.
