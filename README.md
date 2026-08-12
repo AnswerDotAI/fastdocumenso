@@ -38,13 +38,15 @@ signed = await cli.envelope.envelope_item_download(envelope_item_id=d['envelopeI
 
 ## Operations
 
-The full Documenso v2 spec has 89 operations. This client ships with a whitelist of 8 read+create+sign operations for safe testing:
+The regular client exposes all 89 operations in the Documenso v2 spec, so developers
+can experiment with the complete API. The AI skill trusts only these read+create+sign
+operations when run through safepyrun:
 
 | Group | Operations |
 |---|---|
 | envelope | `create`, `get`, `find`, `recipient_create_many`, `field_create_many`, `distribute`, `item_download`, `audit_log_find` |
 
-To change the whitelist, edit `_ALLOWED_OPS` in `fastdocumenso/core.py`.
+To change the AI allowlist, edit the `allow(...)` call in `fastdocumenso/skill.py`.
 
 ## Updating the spec
 
@@ -59,4 +61,4 @@ since Documenso's spec uses empty schemas instead of `format: binary` for file u
 
 ## AI agent use
 
-This package registers a pyskill (`fastdocumenso.skill`). AI hosts (solveit, etc.) can discover it via `list_pyskills()` and load it to automate signing workflows. The skill inherits the same whitelist — delete and cancel operations are not exposed, and `distribute` sends real emails.
+This package registers a pyskill (`fastdocumenso.skill`). AI hosts (solveit, etc.) can discover it via `list_pyskills()` and load it to automate signing workflows. The skill exports a preconfigured `documenso` client containing the complete API for inspection, but safepyrun trusts only the operations listed above; delete and cancel calls remain blocked.
