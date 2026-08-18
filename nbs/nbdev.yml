@@ -1,0 +1,14 @@
+project:
+  output-dir: _docs
+
+website:
+  title: "fastdocumenso"
+  site-url: "https://AnswerDotAI.github.io/fastdocumenso"
+  description: "Documenso v2 API client with pyskill for e-signature workflows"
+  repo-branch: main
+  repo-url: "https://github.com/AnswerDotAI/fastdocumenso"
+
+format-links:
+  - html
+  - format: commonmark
+    text: Markdown
