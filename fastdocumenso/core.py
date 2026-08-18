@@ -46,7 +46,6 @@ def documenso_client(
 SPEC_URL = 'https://app.documenso.com/api/v2/openapi.json'
 
 # %% ../nbs/00_core.ipynb #92ffb995
-# Documenso's spec uses empty item schemas for file uploads (not the standard `format: binary`)
 _FILE_OPS = {'envelope_item_create_many': 'files', 'envelope_create': 'files', 'envelope_use': 'files',
              'document_create': 'file', 'template_create_template': 'file'}
 

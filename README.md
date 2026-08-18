@@ -62,7 +62,7 @@ The spec snapshot is fetched from `https://app.documenso.com/api/v2/openapi.json
 fastdocumenso_update
 ```
 
-`update_spec` also patches `file_params` for 5 envelope and document ops, since Documenso’s spec uses empty schemas instead of `format: binary` for file uploads.
+[`update_spec`](https://AnswerDotAI.github.io/fastdocumenso/core.html#update_spec) also patches `file_params` for 5 envelope and document ops, since Documenso’s spec uses empty schemas instead of `format: binary` for file uploads.
 
 ## AI agent use
 

@@ -5,3 +5,4 @@ __pycache__/
 _docs/
 _proc/
 .quarto
+nbs/dummy.pdf
