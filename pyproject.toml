@@ -4,12 +4,39 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fastdocumenso"
-version = "0.1.2"
+dynamic = ["version"]
 description = "Documenso v2 API client with pyskill for e-signature workflows"
+readme = "README.md"
 requires-python = ">=3.10"
-dependencies = ["fastcore", "fastspec>=0.1.3", "httpx", "pyskills>=0.0.27"]
+license = {text = "Apache-2.0"}
+authors = [{name = "Dien Hoa Truong", email = "hoa@answer.ai"}]
+keywords = ['nbdev', 'jupyter', 'notebook', 'python']
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+]
+dependencies = ["fastcore", "fastspec>=0.1.3", "httpx", "nbdev>=3", "pyskills>=0.0.27"]
+
+[project.urls]
+Repository = "https://github.com/AnswerDotAI/fastdocumenso"
+Documentation = "https://AnswerDotAI.github.io/fastdocumenso/"
+
+[project.entry-points.nbdev]
+fastdocumenso = "fastdocumenso._modidx:d"
 
 [project.entry-points.pyskills]
 "fastdocumenso.skill" = "fastdocumenso.skill"
+
+[project.scripts]
+fastdocumenso_update = "fastdocumenso.core:update_spec"
+
+[tool.setuptools.dynamic]
+version = {attr = "fastdocumenso.__version__"}
+
 [tool.setuptools.packages.find]
 include = ["fastdocumenso"]
+
+[tool.nbdev]
+
+[tool.chkstyle]
+skip_paths = ["_modidx.py", "_spec.py"]

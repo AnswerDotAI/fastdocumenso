@@ -1,2 +1,10 @@
-from importlib.metadata import version; __version__ = version('fastdocumenso')
+"""Documenso v2 API client with pyskill for e-signature workflows
+
+Modules:
+
+- `fastdocumenso.core`: Async Documenso v2 API client built on fastspec
+- `fastdocumenso.skill`: Send documents for e-signature via the Documenso v2 API. Envelope, recipient, field, and audit operations are exposed as async functions."""
+
+__version__ = "0.2.0"
+from .core import *
 
