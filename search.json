@@ -1,0 +1,82 @@
+[
+  {
+    "objectID": "core.html",
+    "href": "core.html",
+    "title": "core",
+    "section": "",
+    "text": "Create a client with documenso_client() and call generated operations: await cli.envelope.envelope_create(...), await cli.document.document_get(...), etc.\nDocumenso’s multipart endpoints are unusual: dict and list parts such as payload must arrive as JSON strings rather than as repeated form fields. _encode_form is passed to the client as its form encoder so callers can keep writing plain Python values.\n_encode_form({'payload': {'title': 'My NDA'}, 'name': 'doc.pdf'})\n\n{'payload': '{\"title\": \"My NDA\"}', 'name': 'doc.pdf'}\ndocumenso_client reads the token from $DOCUMENSO_API_KEY and the base URL from $DOCUMENSO_API_URL, falling back to the URL recorded in the spec. Operations are grouped as attributes, and each operation is an awaitable method.\nsource",
+    "crumbs": [
+      "core"
+    ]
+  },
+  {
+    "objectID": "core.html#updating-the-spec",
+    "href": "core.html#updating-the-spec",
+    "title": "core",
+    "section": "Updating the spec",
+    "text": "Updating the spec\n_spec.py is a snapshot of the Documenso OpenAPI spec. Regenerate it with the fastdocumenso_update command when the API changes.\nDocumenso’s OpenAPI spec marks file-upload parameters with an empty item schema ({}) instead of the standard {'type': 'string', 'format': 'binary'}, so SpecParser.from_openapi doesn’t detect them as file params. Without that detection, files is treated as an ordinary JSON field — and passing a real file object then fails, because httpx/json.dumps can’t serialize a file object.\n\nraw = httpx.get(SPEC_URL, follow_redirects=True).raise_for_status().json()\nraw['paths']['/document/create']['post']['requestBody']['content']['multipart/form-data']['schema']['properties']['file']\n\n{}\n\n\nBuilding a client straight from that raw spec shows the failure. files is treated as an ordinary JSON field, so a file object reaches json.dumps and raises:\n\nparser_unpatched = SpecParser.from_openapi(dict2obj(raw))\ncli_unpatched = OpenAPIClient(parser_unpatched, headers={'Authorization': os.environ['DOCUMENSO_API_KEY']}, form_encoder=_encode_form)\n\nPath('dummy.pdf').write_bytes(b'%PDF-1.4\\n%dummy pdf for testing\\n')\nwith expect_fail(TypeError, contains='JSON serializable'):\n    await cli_unpatched.envelope.envelope_create(payload={'title': 't', 'type': 'DOCUMENT'}, files=[open('dummy.pdf', 'rb')])\n\n_FILE_OPS maps each affected operation to its file parameter name(s), and update_spec replaces those ops’ file_params after parsing to patch this in manually — that’s what lets documenso_client() correctly route files as a multipart upload instead of a JSON field.\n\nsource\n\nupdate_spec\ndef update_spec(\n    url:str='https://app.documenso.com/api/v2/openapi.json', # OpenAPI spec URL to fetch\n    out:str=None, # Output path; defaults to `_spec.py` in the package\n):\nRegenerate _spec.py from the Documenso OpenAPI spec",
+    "crumbs": [
+      "core"
+    ]
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "fastdocumenso",
+    "section": "",
+    "text": "Async Documenso v2 API client built on fastspec, with a pyskill for AI-assisted e-signature workflows.",
+    "crumbs": [
+      "fastdocumenso"
+    ]
+  },
+  {
+    "objectID": "index.html#install",
+    "href": "index.html#install",
+    "title": "fastdocumenso",
+    "section": "Install",
+    "text": "Install\npip install fastdocumenso\nSet your Documenso API token, taken from User settings → API tokens, in $DOCUMENSO_API_KEY. In SolveIt, set it as an env var.",
+    "crumbs": [
+      "fastdocumenso"
+    ]
+  },
+  {
+    "objectID": "index.html#usage",
+    "href": "index.html#usage",
+    "title": "fastdocumenso",
+    "section": "Usage",
+    "text": "Usage\nfrom fastdocumenso import documenso_client\n\ncli = documenso_client()\n\n# Create an envelope with a PDF\nenv = await cli.envelope.envelope_create(\n    payload={'title': 'My NDA', 'type': 'DOCUMENT'},\n    files=('doc.pdf', pdf_bytes, 'application/pdf'))\n\n# Add a signer and a signature field\nawait cli.envelope.envelope_recipient_create_many(\n    envelope_id=env['id'],\n    data=[{'email': 'a@b.com', 'name': 'A', 'role': 'SIGNER'}])\n\nawait cli.envelope.envelope_field_create_many(\n    envelope_id=env['id'],\n    data=[{'recipientId': rid, 'envelopeItemId': item_id,\n           'type': 'SIGNATURE', 'page': 1,\n           'positionX': 60, 'positionY': 80, 'width': 25, 'height': 5}])\n\n# Send the signing email\nawait cli.envelope.envelope_distribute(envelope_id=env['id'])\n\n# Check status and download the signed document\nd = await cli.envelope.envelope_get(envelope_id=env['id'])\nsigned = await cli.envelope.envelope_item_download(envelope_item_id=item_id)",
+    "crumbs": [
+      "fastdocumenso"
+    ]
+  },
+  {
+    "objectID": "index.html#operations",
+    "href": "index.html#operations",
+    "title": "fastdocumenso",
+    "section": "Operations",
+    "text": "Operations\nThe regular client exposes all 89 operations in the Documenso v2 spec, so developers can experiment with the complete API. The AI skill trusts only these read, create and sign operations when run through safepyrun:\n\n\n\n\n\n\n\nGroup\nOperations\n\n\n\n\nenvelope\ncreate, get, find, recipient_create_many, field_create_many, distribute, item_download, audit_log_find\n\n\n\nTo change the AI allowlist, edit the allow(...) call in fastdocumenso/skill.py.",
+    "crumbs": [
+      "fastdocumenso"
+    ]
+  },
+  {
+    "objectID": "index.html#updating-the-spec",
+    "href": "index.html#updating-the-spec",
+    "title": "fastdocumenso",
+    "section": "Updating the spec",
+    "text": "Updating the spec\nThe spec snapshot is fetched from https://app.documenso.com/api/v2/openapi.json. When the API changes, re-run:\nfastdocumenso_update\nupdate_spec also patches file_params for 5 envelope and document ops, since Documenso’s spec uses empty schemas instead of format: binary for file uploads.",
+    "crumbs": [
+      "fastdocumenso"
+    ]
+  },
+  {
+    "objectID": "index.html#ai-agent-use",
+    "href": "index.html#ai-agent-use",
+    "title": "fastdocumenso",
+    "section": "AI agent use",
+    "text": "AI agent use\nThis package registers a pyskill (fastdocumenso.skill). AI hosts such as SolveIt can discover it via list_pyskills() and load it to automate signing workflows. The skill exports a preconfigured documenso client containing the complete API for inspection, but safepyrun trusts only the operations listed above. Delete and cancel calls remain blocked.",
+    "crumbs": [
+      "fastdocumenso"
+    ]
+  }
+]
