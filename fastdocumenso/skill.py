@@ -1,6 +1,6 @@
 """Send documents for e-signature via the Documenso v2 API. Envelope, recipient, field, and audit operations are exposed as async functions.
 
-Use the preconfigured `documenso` client. It needs `$DOCUMENSO_API_KEY`. Operations are async. Await them. This skill trusts only a read, create and sign allowlist. Delete and cancel calls are blocked by safepyrun.
+Use the preconfigured `documenso` client. It needs `$DOCUMENSO_API_KEY`. Operations are async. Await them. This skill allowlists read, create and sign operations. Under safepyrun, other calls are blocked; without it nothing is enforced, so never call delete, cancel or update operations.
 
 # Allowed operations
 
@@ -59,6 +59,16 @@ Use the step-by-step alternative when adding recipients or fields to an existing
     logs = await documenso.envelope.envelope_audit_log_find(envelope_id=eid, per_page=100)
     # -> {'data': [...], 'count': int, 'currentPage': int, 'perPage': int, 'totalPages': int}
 
+# Who has signed
+
+    found = await documenso.envelope.envelope_find(query='Hoa', per_page=10)
+    eid = found['data'][0]['id']
+    d = await documenso.envelope.envelope_get(envelope_id=eid)
+    [(r['name'], r['signingStatus']) for r in d['recipients']]            # SIGNED / NOT_SIGNED
+    logs = await documenso.envelope.envelope_audit_log_find(envelope_id=eid, per_page=100)
+    [(l['createdAt'], l['type'], l['data'].get('recipientName')) for l in logs['data']]
+    # types include EMAIL_SENT (data['isResending'] marks a reminder), DOCUMENT_OPENED, DOCUMENT_RECIPIENT_COMPLETED.
+    # l['email'] is the actor (often the sender); the recipient is in l['data'].
 # Finding envelopes
 
     found = await documenso.envelope.envelope_find(status='PENDING', per_page=100,
@@ -75,6 +85,7 @@ Filters: `query`, `status` (DRAFT/PENDING/COMPLETED/REJECTED/CANCELLED), `type` 
 - `payload` is a plain dict. The client JSON-encodes it for multipart.
 - `envelope_create` returns `{'id': ...}` and nothing else. Call `envelope_get` for item ids, recipients, fields, status, and `team['url']`.
 - `envelope_distribute` returns `{'success': True, 'id': ..., 'recipients': [...]}`. It has no `status` key. The signing URL is `res['recipients'][0]['signingUrl']`.
+- Recipient `signingOrder` is cosmetic: all recipients are emailed at distribute time. Use the audit log for who has opened or signed.
 - Return shapes are annotated inline above. If one is not annotated, print the whole dict rather than guessing a key.
 - Never put a side-effecting call (`distribute`) and speculative inspection in the same cell. If the cell raises, its variables are discarded even though the network call already went through. Capture first, inspect separately.
 - Field types: SIGNATURE, FREE_SIGNATURE, INITIALS, NAME, EMAIL, DATE, TEXT, NUMBER, RADIO, CHECKBOX, DROPDOWN. Roles: SIGNER, CC, VIEWER, APPROVER, ASSISTANT. Statuses: DRAFT, PENDING, COMPLETED, REJECTED, CANCELLED.
