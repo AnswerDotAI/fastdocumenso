@@ -10,6 +10,6 @@ Read the skill docstring first and follow it. It lists the allowed operations, r
 
     python -c "import fastdocumenso.skill as s; print(s.__doc__)"
 
-Write one short script per question and run it with `python`. Operations are async, so wrap them in `asyncio.run(...)`. Start from the "Who has signed" recipe in the docstring.
+Write one short script per question and run it with `python`. Operations are async, so wrap them in `asyncio.run(...)`.
 
 Never call delete, cancel or update operations.
